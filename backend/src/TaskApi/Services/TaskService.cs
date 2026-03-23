@@ -127,10 +127,11 @@ public sealed class TaskService(AppDbContext db) : ITaskService
 
     public async Task<bool> DeleteAsync(Guid id, CancellationToken ct = default)
     {
-        var deleted = await db.Tasks
-            .Where(t => t.Id == id)
-            .ExecuteDeleteAsync(ct);
+        var task = await db.Tasks.FindAsync([id], ct);
+        if (task is null) return false;
 
-        return deleted > 0;
+        db.Tasks.Remove(task);
+        await db.SaveChangesAsync(ct);
+        return true;
     }
 }

@@ -6,19 +6,25 @@ using System.Security.Claims;
 using FluentAssertions;
 using Microsoft.IdentityModel.Tokens;
 using TaskApi.Dtos;
+using Xunit;
 
 namespace TaskApi.IntegrationTests.Endpoints;
 
-public class TaskEndpointsTests : IClassFixture<TaskApiFactory>
+public class TaskEndpointsTests : IClassFixture<TaskApiFactory>, IAsyncLifetime
 {
     private readonly HttpClient _client;
+    private readonly TaskApiFactory _factory;
 
     public TaskEndpointsTests(TaskApiFactory factory)
     {
+        _factory = factory;
         _client = factory.CreateClient();
         _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", GenerateTestToken());
     }
+
+    public async Task InitializeAsync() => await _factory.ResetDatabaseAsync();
+    public Task DisposeAsync() => Task.CompletedTask;
 
     // ── GET /api/tasks ───────────────────────────────────────────────────────
 
@@ -133,7 +139,9 @@ public class TaskEndpointsTests : IClassFixture<TaskApiFactory>
     [Fact]
     public async Task GetTasks_ReturnsUnauthorized_WithoutToken()
     {
-        var unauthClient = new HttpClient { BaseAddress = _client.BaseAddress };
+        // Use the factory's in-memory server — a plain new HttpClient would connect
+        // to a real socket and fail with connection refused.
+        var unauthClient = _factory.CreateClient();
         var response = await unauthClient.GetAsync("/api/tasks");
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
