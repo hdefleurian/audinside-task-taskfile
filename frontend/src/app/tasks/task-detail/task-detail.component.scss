@@ -1,0 +1,59 @@
+.detail-container {
+  max-width: 720px;
+  margin: 24px auto;
+}
+
+mat-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+
+  .spacer { flex: 1; }
+
+  .header-chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+}
+
+.description {
+  margin: 16px 0;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+mat-divider {
+  margin-bottom: 16px;
+}
+
+.meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+
+  .meta-item {
+    display: flex;
+    flex-direction: column;
+
+    .meta-label {
+      font-size: 12px;
+      color: rgba(0,0,0,0.54);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .meta-value {
+      font-size: 15px;
+      margin-top: 4px;
+    }
+  }
+}
+
+.spinner-container {
+  display: flex;
+  justify-content: center;
+  padding: 64px 0;
+}

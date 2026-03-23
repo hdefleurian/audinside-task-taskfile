@@ -1,0 +1,31 @@
+<mat-toolbar color="primary" class="app-toolbar">
+    <a routerLink="/tasks" class="brand">
+        <mat-icon>task_alt</mat-icon>
+        <span>Task Manager</span>
+    </a>
+
+    <span class="spacer"></span>
+
+    @if (authService.isAuthenticated$ | async) {
+    <ng-container *ngIf="authService.userData$ | async as user">
+        <button mat-button [matMenuTriggerFor]="userMenu">
+            <mat-icon>account_circle</mat-icon>
+            {{ user.userData?.preferred_username ?? 'User' }}
+            <mat-icon>arrow_drop_down</mat-icon>
+        </button>
+        <mat-menu #userMenu="matMenu">
+            <button mat-menu-item (click)="authService.logout()">
+                <mat-icon>logout</mat-icon> Sign out
+            </button>
+        </mat-menu>
+    </ng-container>
+    } @else {
+    <button mat-button (click)="authService.login()">
+        <mat-icon>login</mat-icon> Sign in
+    </button>
+    }
+</mat-toolbar>
+
+<main class="main-content">
+    <router-outlet></router-outlet>
+</main>

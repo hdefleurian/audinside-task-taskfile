@@ -1,0 +1,101 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: taskapp-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-taskapp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-taskapp_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-taskappdb}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - taskapp-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-taskapp} -d ${POSTGRES_DB:-taskappdb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.1
+    container_name: taskapp-keycloak
+    command: start-dev --import-realm
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-taskappdb}
+      KC_DB_USERNAME: ${POSTGRES_USER:-taskapp}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-taskapp_secret}
+      KC_DB_SCHEMA: keycloak
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin_secret}
+      KC_HOSTNAME_STRICT: false
+      KC_HOSTNAME_STRICT_HTTPS: false
+      KC_HTTP_ENABLED: true
+      KC_HEALTH_ENABLED: true
+    volumes:
+      - ./keycloak:/opt/keycloak/data/import
+    ports:
+      - "${KEYCLOAK_PORT:-8080}:8080"
+    networks:
+      - taskapp-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 && cat <&3 | grep -q '200 OK'"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: src/TaskApi/Dockerfile
+    container_name: taskapp-backend
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-taskappdb};Username=${POSTGRES_USER:-taskapp};Password=${POSTGRES_PASSWORD:-taskapp_secret}"
+      Keycloak__Authority: "http://keycloak:8080/realms/taskapp"
+      Keycloak__Audience: "taskapp-backend"
+      Cors__AllowedOrigins: "http://localhost:${FRONTEND_PORT:-4200},http://frontend"
+    networks:
+      - taskapp-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        API_URL: /api
+        KEYCLOAK_URL: http://keycloak:8080
+    container_name: taskapp-frontend
+    environment:
+      NGINX_BACKEND_URL: http://backend:8080
+      NGINX_KEYCLOAK_URL: http://keycloak:8080
+    ports:
+      - "${FRONTEND_PORT:-4200}:80"
+    networks:
+      - taskapp-network
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+
+networks:
+  taskapp-network:
+    driver: bridge

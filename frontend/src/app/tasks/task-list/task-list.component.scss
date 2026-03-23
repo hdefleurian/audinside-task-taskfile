@@ -1,0 +1,56 @@
+.task-list-container {
+  margin: 16px;
+}
+
+mat-card-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+
+  .spacer {
+    flex: 1;
+  }
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+
+  .search-field {
+    flex: 1;
+    min-width: 240px;
+  }
+}
+
+.spinner-container {
+  display: flex;
+  justify-content: center;
+  padding: 48px 0;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+}
+
+.task-title-link {
+  text-decoration: none;
+  color: inherit;
+  font-weight: 500;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.no-data-row .no-data-cell {
+  text-align: center;
+  padding: 32px;
+  color: rgba(0, 0, 0, 0.54);
+}

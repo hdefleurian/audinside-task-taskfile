@@ -1,0 +1,162 @@
+{
+    "realm": "taskapp",
+    "enabled": true,
+    "displayName": "Task App",
+    "displayNameHtml": "<strong>Task App</strong>",
+    "sslRequired": "external",
+    "registrationAllowed": false,
+    "loginWithEmailAllowed": true,
+    "duplicateEmailsAllowed": false,
+    "resetPasswordAllowed": true,
+    "editUsernameAllowed": false,
+    "bruteForceProtected": true,
+    "accessTokenLifespan": 300,
+    "ssoSessionIdleTimeout": 1800,
+    "ssoSessionMaxLifespan": 36000,
+    "roles": {
+        "realm": [
+            {
+                "name": "user",
+                "description": "Standard task app user",
+                "composite": false,
+                "clientRole": false,
+                "containerId": "taskapp"
+            },
+            {
+                "name": "admin",
+                "description": "Task app administrator",
+                "composite": false,
+                "clientRole": false,
+                "containerId": "taskapp"
+            }
+        ]
+    },
+    "clients": [
+        {
+            "clientId": "taskapp-frontend",
+            "name": "Task App Frontend",
+            "description": "Angular SPA client",
+            "enabled": true,
+            "publicClient": true,
+            "standardFlowEnabled": true,
+            "implicitFlowEnabled": false,
+            "directAccessGrantsEnabled": false,
+            "serviceAccountsEnabled": false,
+            "protocol": "openid-connect",
+            "rootUrl": "http://localhost:4200",
+            "baseUrl": "/",
+            "redirectUris": [
+                "http://localhost:4200/*",
+                "http://frontend/*"
+            ],
+            "webOrigins": [
+                "http://localhost:4200",
+                "http://frontend"
+            ],
+            "attributes": {
+                "pkce.code.challenge.method": "S256",
+                "post.logout.redirect.uris": "http://localhost:4200/*##http://frontend/*"
+            },
+            "defaultClientScopes": [
+                "web-origins",
+                "roles",
+                "profile",
+                "email"
+            ],
+            "optionalClientScopes": [
+                "address",
+                "phone",
+                "offline_access"
+            ]
+        },
+        {
+            "clientId": "taskapp-backend",
+            "name": "Task App Backend",
+            "description": "Backend API resource server",
+            "enabled": true,
+            "publicClient": false,
+            "bearerOnly": true,
+            "standardFlowEnabled": false,
+            "implicitFlowEnabled": false,
+            "directAccessGrantsEnabled": false,
+            "serviceAccountsEnabled": false,
+            "protocol": "openid-connect",
+            "defaultClientScopes": [
+                "web-origins",
+                "roles",
+                "profile",
+                "email"
+            ]
+        }
+    ],
+    "users": [
+        {
+            "username": "testuser",
+            "email": "testuser@taskapp.dev",
+            "firstName": "Test",
+            "lastName": "User",
+            "enabled": true,
+            "emailVerified": true,
+            "credentials": [
+                {
+                    "type": "password",
+                    "value": "Test1234!",
+                    "temporary": false
+                }
+            ],
+            "realmRoles": [
+                "user"
+            ]
+        },
+        {
+            "username": "adminuser",
+            "email": "admin@taskapp.dev",
+            "firstName": "Admin",
+            "lastName": "User",
+            "enabled": true,
+            "emailVerified": true,
+            "credentials": [
+                {
+                    "type": "password",
+                    "value": "Admin1234!",
+                    "temporary": false
+                }
+            ],
+            "realmRoles": [
+                "user",
+                "admin"
+            ]
+        }
+    ],
+    "clientScopes": [
+        {
+            "name": "roles",
+            "protocol": "openid-connect",
+            "attributes": {
+                "include.in.token.scope": "true"
+            },
+            "protocolMappers": [
+                {
+                    "name": "realm roles",
+                    "protocol": "openid-connect",
+                    "protocolMapper": "oidc-usermodel-realm-role-mapper",
+                    "consentRequired": false,
+                    "config": {
+                        "multivalued": "true",
+                        "userinfo.token.claim": "true",
+                        "id.token.claim": "true",
+                        "access.token.claim": "true",
+                        "claim.name": "realm_access.roles",
+                        "jsonType.label": "String"
+                    }
+                }
+            ]
+        }
+    ],
+    "defaultDefaultClientScopes": [
+        "roles",
+        "web-origins",
+        "profile",
+        "email"
+    ]
+}
