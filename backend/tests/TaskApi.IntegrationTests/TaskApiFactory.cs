@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Testcontainers.PostgreSql;
 using TaskApi.Data;
 using Xunit;
@@ -64,12 +65,18 @@ public class TaskApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
                 options.DefaultChallengeScheme = TestAuthHandler.SchemeName;
             }).AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions,
                          TestAuthHandler>(TestAuthHandler.SchemeName, _ => { });
-
-            // Ensure schema is created
-            using var scope = services.BuildServiceProvider().CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            db.Database.EnsureCreated();
         });
+    }
+
+    protected override IHost CreateHost(IHostBuilder builder)
+    {
+        var host = base.CreateHost(builder);
+
+        using var scope = host.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.Database.Migrate();
+
+        return host;
     }
 }
 

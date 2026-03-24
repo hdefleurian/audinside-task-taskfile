@@ -24,7 +24,6 @@ tasks:
     cmds:
       - task build:backend
       - task build:frontend
-      - task build:jobs
     silent: true
 
   build:backend:
@@ -51,8 +50,6 @@ tasks:
   run:frontend:
     desc: "Run frontend"
     dir: ./frontend
-    deps:
-      - run:backend:deps
     cmds:
       - task run
     silent: true
@@ -62,7 +59,6 @@ tasks:
     cmds:
       - task tests:backend
       - task tests:frontend
-      - task tests:jobs
     silent: true
 
   tests:backend:
@@ -122,47 +118,53 @@ tasks:
     silent: true
 
   compose:start:
-    desc: "Start all services with docker-compose"
+    desc: "Start all services with docker compose"
     cmds:
-      - docker-compose up -d
+      - docker compose up -d
+    silent: true
+
+  compose:infra:
+    desc: "Start infrastructure services (postgres and keycloak)"
+    cmds:
+      - docker compose up -d postgres keycloak
     silent: true
 
   compose:start:*:
     vars:
       SERVICE: '{{index .MATCH 0}}'
-    desc: "Start {{.SERVICE}} service and dependencies with docker-compose"
+    desc: "Start {{.SERVICE}} service and dependencies with docker compose"
     cmds:
-      - docker-compose up -d {{.SERVICE}}
+      - docker compose up -d {{.SERVICE}}
     silent: true
 
   compose:ps:
-    desc: "List running services with docker-compose"
+    desc: "List running services with docker compose"
     cmds:
-      - docker-compose ps
+      - docker compose ps
     silent: true
 
   compose:stop:all:
-    desc: "Stop all services with docker-compose"
+    desc: "Stop all services with docker compose"
     cmds:
-      - docker-compose down
+      - docker compose down
     silent: true
 
   compose:stop:*:
     vars:
       SERVICE: '{{index .MATCH 0}}'
-    desc: "Stop {{.SERVICE}} service with docker-compose"
+    desc: "Stop {{.SERVICE}} service with docker compose"
     cmds:
-      - docker-compose down {{.SERVICE}}
+      - docker compose stop {{.SERVICE}}
     silent: true
 
   compose:build:backend:
-    desc: "Build backend service with docker-compose"
+    desc: "Build backend service with docker compose"
     cmds:
-      - docker-compose build backend
+      - docker compose build backend
     silent: true
 
   compose:restart:backend:
-    desc: "Restart backend service with docker-compose"
+    desc: "Restart backend service with docker compose"
     cmds:
       - task compose:stop:backend
       - task compose:build:backend
@@ -170,13 +172,13 @@ tasks:
     silent: true
 
   compose:build:frontend:
-    desc: "Build frontend service with docker-compose"
+    desc: "Build frontend service with docker compose"
     cmds:
-      - docker-compose build frontend
+      - docker compose build frontend
     silent: true
 
   compose:restart:frontend:
-    desc: "Restart frontend service with docker-compose"
+    desc: "Restart frontend service with docker compose"
     cmds:
       - task compose:stop:frontend
       - task compose:build:frontend
@@ -184,22 +186,52 @@ tasks:
     silent: true
 
   compose:logs:
-    desc: "Follow logs of all services with docker-compose"
+    desc: "Follow logs of all services with docker compose"
     cmds:
-      - docker-compose logs -f
+      - docker compose logs -f
 
   compose:logs:*:
     vars:
       SERVICE: '{{index .MATCH 0}}'
-    desc: "Follow logs of {{.SERVICE}} service with docker-compose"
+    desc: "Follow logs of {{.SERVICE}} service with docker compose"
     cmds:
-      - docker-compose logs -f {{.SERVICE}}
+      - docker compose logs -f {{.SERVICE}}
     silent: true
 
   compose:clean:
-    desc: "Remove all containers, volumes, and images created by docker-compose"
+    desc: "Remove all containers, volumes, and images created by docker compose"
     cmds:
-      - docker-compose down --volumes --rmi all --remove-orphans
+      - docker compose down --volumes --rmi all --remove-orphans
       - docker volume prune -f
       - docker image prune -f
+    silent: true
+
+  db:migrate:
+    desc: "Apply backend database migrations"
+    dir: ./backend
+    cmds:
+      - task db:migrate
+    silent: true
+
+  db:migration:add:
+    desc: "Add a backend EF Core migration (usage: task db:migration:add NAME=MyMigration)"
+    requires:
+      vars:
+        - NAME
+    dir: ./backend
+    cmds:
+      - task db:migration:add NAME={{.NAME}}
+    silent: true
+
+  db:migration:list:
+    desc: "List backend EF Core migrations"
+    dir: ./backend
+    cmds:
+      - task db:migration:list
+    silent: true
+
+  keycloak:export:
+    desc: "Export taskapp Keycloak realm from running container"
+    cmds:
+      - docker compose exec keycloak /opt/keycloak/bin/kc.sh export --dir /opt/keycloak/data/import --realm taskapp
     silent: true

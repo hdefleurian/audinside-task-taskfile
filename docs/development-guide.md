@@ -25,7 +25,7 @@ cp .env.example .env   # Review values — defaults work for local dev
 ### 2. Run with Docker Compose (recommended)
 
 ```bash
-docker compose up --build
+task compose:start
 ```
 
 Services start in order: PostgreSQL → Keycloak → Backend → Frontend.
@@ -40,11 +40,13 @@ Once running:
 - API docs: http://localhost:5000/scalar
 - Keycloak admin: http://localhost:8080 (`admin` / `admin`)
 
+In this mode, the backend runs in `Development` and applies pending EF Core migrations automatically on startup.
+
 ### 3. Stop services
 
 ```bash
-docker compose down          # Keep volumes (data preserved)
-docker compose down -v       # Remove volumes (clean slate)
+task compose:stop:all        # Keep volumes (data preserved)
+task compose:clean           # Remove volumes, images, and orphans
 ```
 
 ---
@@ -56,22 +58,16 @@ For a faster development loop you can run the frontend and backend directly on y
 ### Start only infrastructure
 
 ```bash
-docker compose up postgres keycloak -d
+task compose:infra
 ```
 
 ### Backend
 
 ```bash
-cd backend/src/TaskApi
-
-# Restore dependencies
-dotnet restore
-
-# Apply database migrations
-dotnet ef database update
-
-# Run the API (hot-reload)
-dotnet watch run
+task build:backend
+task -d backend tools:install
+task db:migrate
+task run:backend
 ```
 
 The API will be available at `http://localhost:5000`.
@@ -81,13 +77,9 @@ Environment variables are read from `appsettings.Development.json` which points 
 ### Frontend
 
 ```bash
-cd frontend
-
-# Install dependencies (first time only)
-npm install
-
-# Start dev server with proxy
-npm start
+task init                      # first time only, Admin PowerShell
+task -d frontend restore
+task run:frontend
 ```
 
 The app will be available at `http://localhost:4200`. API calls are proxied to `http://localhost:5000` via `proxy.conf.json`.
@@ -116,7 +108,7 @@ KEYCLOAK_ADMIN_PASSWORD=admin
   "ConnectionStrings": {
     "DefaultConnection": "Host=localhost;Port=5432;Database=taskappdb;Username=taskapp;Password=taskapp_secret"
   },
-  "Auth": {
+  "Keycloak": {
     "Authority": "http://localhost:8080/realms/taskapp",
     "Audience": "taskapp-backend"
   },
@@ -149,37 +141,46 @@ export const environment = {
 
 The project uses EF Core code-first migrations.
 
+### Migration ownership by environment
+
+- `Development`: the application applies pending migrations on startup
+- `Testing`: `TaskApiFactory` applies migrations explicitly when creating the test host
+- `Production`: run migrations explicitly before or during deployment, not from app startup
+
+This separation avoids conflicts between automatic startup migration and test-time schema creation.
+
 ### Create a new migration
 
 ```bash
-cd backend/src/TaskApi
-dotnet ef migrations add <MigrationName>
+task -d backend tools:install          # first time only
+task db:migration:add NAME=<MigrationName>
 ```
 
 ### Apply migrations
 
 ```bash
-# Against local database
-dotnet ef database update
+# Start the Docker dependencies if needed
+task compose:infra
 
-# Against Docker database (set connection string)
-dotnet ef database update --connection "Host=localhost;Port=5432;Database=taskappdb;Username=taskapp;Password=taskapp_secret"
+# Apply migrations against the local development database
+task db:migrate
 ```
 
 ### Rollback a migration
 
 ```bash
-dotnet ef database update <PreviousMigrationName>
-dotnet ef migrations remove   # Remove the last unapplied migration
+cd backend/src/TaskApi
+dotnet ef database update <PreviousMigrationName> --project . --startup-project .
+dotnet ef migrations remove --project . --startup-project .
 ```
 
 ### View pending migrations
 
 ```bash
-dotnet ef migrations list
+task db:migration:list
 ```
 
-In Development, the application automatically applies pending migrations at startup (`db.Database.MigrateAsync()`). In production, run migrations explicitly before deploying.
+If `dotnet-ef` is not found after installing it, add `%USERPROFILE%\\.dotnet\\tools` to your `PATH`.
 
 ---
 
@@ -200,7 +201,7 @@ http://localhost:8080 → admin / admin → realm `taskapp`
 
 ### Re-import the realm
 
-If the Keycloak volume is deleted, the realm will be re-imported automatically on the next `docker compose up`.
+If the Keycloak volume is deleted, the realm will be re-imported automatically on the next `task compose:start`.
 
 ---
 
@@ -232,7 +233,7 @@ Visual Studio / VS Code launch configuration uses `https` profile from `launchSe
 
 ```bash
 # View backend logs in Docker
-docker compose logs -f backend
+task compose:logs:backend
 
 # Connect directly to the database
 docker compose exec postgres psql -U taskapp -d taskappdb
@@ -245,20 +246,17 @@ docker compose exec postgres psql -U taskapp -d taskappdb
 # Use browser dev tools → Sources for breakpoints
 
 # View frontend container logs
-docker compose logs -f frontend
+task compose:logs:frontend
 ```
 
 ### Keycloak
 
 ```bash
 # View Keycloak logs
-docker compose logs -f keycloak
+task compose:logs:keycloak
 
 # Export realm after manual changes
-docker compose exec keycloak \
-  /opt/keycloak/bin/kc.sh export \
-  --dir /opt/keycloak/data/import \
-  --realm taskapp
+task keycloak:export
 ```
 
 ---
@@ -268,8 +266,7 @@ docker compose exec keycloak \
 ### Backend
 
 ```bash
-cd backend
-docker build -t taskapp-backend .
+task docker:build:backend
 ```
 
 The Dockerfile uses multi-stage build: SDK → publish → aspnet runtime image.
@@ -277,8 +274,7 @@ The Dockerfile uses multi-stage build: SDK → publish → aspnet runtime image.
 ### Frontend
 
 ```bash
-cd frontend
-docker build -t taskapp-frontend .
+task docker:build:frontend
 ```
 
 The Dockerfile uses: node:22-alpine (build) → nginx:alpine (runtime).
@@ -286,8 +282,8 @@ The Dockerfile uses: node:22-alpine (build) → nginx:alpine (runtime).
 ### Full stack
 
 ```bash
-docker compose -f docker-compose.yml build
-docker compose -f docker-compose.yml up -d
+task docker:build
+task compose:start
 ```
 
 ---
@@ -295,21 +291,31 @@ docker compose -f docker-compose.yml up -d
 ## Useful Commands Reference
 
 ```bash
-# Rebuild only the backend image
-docker compose up --build backend
+# Build everything
+task build
 
-# Run backend tests with coverage
-dotnet test backend/tests/TaskApi.UnitTests --collect:"XPlat Code Coverage"
+# Start full stack or only local dependencies
+task compose:start
+task compose:infra
 
-# Run frontend tests
-cd frontend && npm test
+# Rebuild and restart a single Docker service
+task compose:restart:backend
+task compose:restart:frontend
 
-# Run E2E tests (requires running stack)
-cd frontend && npx playwright test
+# Start local backend workflow
+task db:migrate && task run:backend
+
+# Run focused test suites
+task -d backend tests:unit
+task -d backend tests:integration
+task -d backend tests:coverage
+task -d frontend tests
+task -d frontend tests:coverage
+task -d frontend tests:e2e
+
+# Inspect migrations
+task db:migration:list
 
 # Open Playwright report
-npx playwright show-report
-
-# Inspect EF model
-cd backend/src/TaskApi && dotnet ef dbcontext info
+task -d frontend tests:e2e:report
 ```

@@ -78,7 +78,7 @@ src/
 | Token validation | Keycloak JWKS endpoint (authority auto-discovery) |
 | API docs | OpenAPI + Scalar |
 | Health checks | `/health` via `AddDbContextCheck<AppDbContext>` |
-| Migrations | Code-first, auto-applied in Development |
+| Migrations | Code-first, auto-applied in Development; explicit in Testing and Production |
 
 **Layer structure:**
 
@@ -106,6 +106,13 @@ HTTP Request
   → TaskItemDto (mapped)
   → JSON response
 ```
+
+**Migration flow:**
+
+1. Local Docker Compose development starts the backend in `Development`
+2. `Program.cs` applies pending EF Core migrations before serving requests
+3. Integration tests use a separate `Testing` environment and migrate the fresh Testcontainers database explicitly in `TaskApiFactory`
+4. Production deployments should run migrations as a separate operational step
 
 ---
 

@@ -1,46 +1,87 @@
 version: '3'
 
+vars:
+  FRONTEND_IMAGE_NAME: 'taskapp-frontend'
+
 tasks:
   restore:
+    desc: "Install frontend dependencies"
     cmds:
-      - echo "Restoring frontend..."
+      - pnpm install
     silent: true
 
   build:
+    desc: "Build frontend production bundle"
     deps:
       - restore
     cmds:
-      - echo "Building frontend..."
+      - pnpm run build:prod
     silent: true
 
   run:
-    desc: "Run the frontend application"
+    desc: "Run the frontend development server"
     deps:
-      - build
+      - restore
     cmds:
-      - echo "Running frontend..."
+      - pnpm start
     silent: true
 
   tests:
+    desc: "Run frontend unit tests"
     deps:
-      - build
+      - restore
     cmds:
-      - echo "Running tests..."
+      - pnpm test
+    silent: true
+
+  tests:watch:
+    desc: "Run frontend unit tests in watch mode"
+    deps:
+      - restore
+    cmds:
+      - pnpm run test:watch
+    silent: true
+
+  tests:coverage:
+    desc: "Run frontend unit tests with coverage"
+    deps:
+      - restore
+    cmds:
+      - pnpm run test:coverage
+    silent: true
+
+  tests:e2e:
+    desc: "Run frontend end-to-end tests with Playwright"
+    deps:
+      - restore
+    cmds:
+      - pnpm exec playwright test
+    silent: true
+
+  tests:e2e:report:
+    desc: "Open Playwright HTML report"
+    deps:
+      - restore
+    cmds:
+      - pnpm exec playwright show-report
     silent: true
 
   docker:build:
+    desc: "Build Docker image for frontend"
     cmds:
-      - echo "Building Docker image for frontend..."
+      - docker build -f Dockerfile -t {{.FRONTEND_IMAGE_NAME}}:latest .
     silent: true
 
   docker:push:
+    desc: "Push Docker image for frontend"
     deps:
       - docker:build
     cmds:
-      - echo "Pushing Docker image for frontend..."
+      - docker push {{.FRONTEND_IMAGE_NAME}}:latest
     silent: true
 
   clean:
+    desc: "Clean frontend build and test artifacts"
     cmds:
-      - echo "Cleaning frontend..."
+      - powershell -NoProfile -Command "if (Test-Path dist) { Remove-Item -Recurse -Force dist }; if (Test-Path .angular) { Remove-Item -Recurse -Force .angular }; if (Test-Path coverage) { Remove-Item -Recurse -Force coverage }"
     silent: true

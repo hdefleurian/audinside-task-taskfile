@@ -51,7 +51,7 @@ TaskApp follows the **test pyramid**: many fast unit tests at the base, fewer in
 **Run:**
 
 ```bash
-dotnet test backend/tests/TaskApi.UnitTests
+task -d backend tests:unit
 ```
 
 **Design principles:**
@@ -79,8 +79,9 @@ dotnet test backend/tests/TaskApi.UnitTests
 WebApplicationFactory<Program> + IAsyncLifetime
   → PostgreSqlBuilder().WithImage("postgres:16-alpine")
   → Replaces DbContext connection string with container connection string
-  → PostConfigure<JwtBearerOptions> bypasses JWT signature validation in Testing env
-  → db.Database.EnsureCreated()
+  → Replaces authentication with a test-only bearer handler
+  → Creates the host in `Testing`
+  → db.Database.Migrate()
 ```
 
 **What is tested (`TaskEndpointsTests`):**
@@ -101,12 +102,18 @@ WebApplicationFactory<Program> + IAsyncLifetime
 
 ```bash
 # Requires Docker to be running (Testcontainers starts PostgreSQL automatically)
-dotnet test backend/tests/TaskApi.IntegrationTests
+task -d backend tests:integration
 ```
 
 **JWT bypass for testing:**
 
-Integration tests generate unsigned JWT tokens using a `SignatureValidator` passthrough registered via `PostConfigure<JwtBearerOptions>`. This means tests run without a live Keycloak instance.
+Integration tests do not call Keycloak. `TaskApiFactory` swaps the default authentication scheme for a test-only handler that accepts any request carrying an `Authorization: Bearer ...` header.
+
+**Migration timing in tests:**
+
+- The application no longer owns migration startup in the `Testing` environment
+- `TaskApiFactory` applies migrations explicitly after creating the test host
+- This avoids conflicts such as creating tables twice before endpoint tests begin
 
 ---
 
@@ -134,10 +141,9 @@ Integration tests generate unsigned JWT tokens using a `SignatureValidator` pass
 **Run:**
 
 ```bash
-cd frontend
-npm test                   # Run once
-npm run test:watch         # Watch mode
-npm run test:coverage      # With coverage report
+task -d frontend tests
+task -d frontend tests:watch
+task -d frontend tests:coverage
 ```
 
 **Coverage report:** `frontend/coverage/`
@@ -157,8 +163,9 @@ npm run test:coverage      # With coverage report
 A running Docker Compose stack with all services:
 
 ```bash
-docker compose up -d
-npx playwright install    # First time only
+task compose:start
+task init                 # First time only, Admin PowerShell
+task -d frontend restore
 ```
 
 **Test suites:**
@@ -183,12 +190,11 @@ npx playwright install    # First time only
 **Run:**
 
 ```bash
-cd frontend
-npx playwright test               # All tests, headless
-npx playwright test --headed      # Watch browser
-npx playwright test --ui          # Playwright UI mode
-npx playwright show-report        # Open last HTML report
+task -d frontend tests:e2e
+task -d frontend tests:e2e:report
 ```
+
+There is currently no Task wrapper for Playwright `--headed` or `--ui` modes.
 
 **Configuration:** `frontend/playwright.config.ts`
 
@@ -198,14 +204,15 @@ npx playwright show-report        # Open last HTML report
 
 ```bash
 # Backend unit + integration tests
-dotnet test backend/tests/TaskApi.UnitTests
-dotnet test backend/tests/TaskApi.IntegrationTests
+task -d backend tests:unit
+task -d backend tests:integration
 
 # Frontend unit tests
-cd frontend && npm test
+task -d frontend tests
 
 # E2E (requires running stack)
-cd frontend && npx playwright test
+task compose:start
+task -d frontend tests:e2e
 ```
 
 ---
@@ -238,16 +245,17 @@ jobs:
       - name: Frontend tests
         run: |
           cd frontend
-          npm ci
-          npm test -- --ci
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm test -- --ci
 
       - name: E2E tests
         run: |
           docker compose up -d
           docker compose wait  # Or use healthcheck polling
           cd frontend
-          npx playwright install --with-deps
-          npx playwright test
+          pnpm exec playwright install --with-deps
+          pnpm exec playwright test
 ```
 
 ---
