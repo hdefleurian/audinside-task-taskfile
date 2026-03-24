@@ -1,0 +1,46 @@
+version: '3'
+
+tasks:
+  restore:
+    cmds:
+      - echo "Restoring frontend..."
+    silent: true
+
+  build:
+    deps:
+      - restore
+    cmds:
+      - echo "Building frontend..."
+    silent: true
+
+  run:
+    desc: "Run the frontend application"
+    deps:
+      - build
+    cmds:
+      - echo "Running frontend..."
+    silent: true
+
+  tests:
+    deps:
+      - build
+    cmds:
+      - echo "Running tests..."
+    silent: true
+
+  docker:build:
+    cmds:
+      - echo "Building Docker image for frontend..."
+    silent: true
+
+  docker:push:
+    deps:
+      - docker:build
+    cmds:
+      - echo "Pushing Docker image for frontend..."
+    silent: true
+
+  clean:
+    cmds:
+      - echo "Cleaning frontend..."
+    silent: true
