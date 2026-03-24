@@ -26,7 +26,7 @@ public sealed record UpdateTaskRequest
     public DateTimeOffset? DueDate { get; init; }
     [MaxLength(200)]
     public string? Assignee { get; init; }
-};
+}
 
 public sealed record TaskQueryParams(
     string? Status = null,

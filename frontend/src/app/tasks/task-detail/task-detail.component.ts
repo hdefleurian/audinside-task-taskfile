@@ -8,8 +8,10 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 
 import { TaskService } from '../task.service';
+import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 import {
     TaskItem,
     TaskStatus,
@@ -30,7 +32,8 @@ import {
         MatChipsModule,
         MatDividerModule,
         MatProgressSpinnerModule,
-        MatSnackBarModule
+        MatSnackBarModule,
+        MatDialogModule
     ],
     templateUrl: './task-detail.component.html',
     styleUrls: ['./task-detail.component.scss']
@@ -40,6 +43,7 @@ export class TaskDetailComponent implements OnInit {
     private readonly route = inject(ActivatedRoute);
     private readonly router = inject(Router);
     private readonly snackBar = inject(MatSnackBar);
+    private readonly dialog = inject(MatDialog);
 
     readonly statusLabels: Record<string, string> = TASK_STATUS_LABELS;
     readonly priorityLabels: Record<string, string> = TASK_PRIORITY_LABELS;
@@ -64,13 +68,18 @@ export class TaskDetailComponent implements OnInit {
     deleteTask(): void {
         const t = this.task();
         if (!t) return;
-        if (!confirm(`Delete "${t.title}"?`)) return;
-        this.taskService.deleteTask(t.id).subscribe({
-            next: () => {
-                this.snackBar.open('Task deleted', 'Dismiss', { duration: 2000 });
-                this.router.navigate(['/tasks']);
-            },
-            error: () => this.snackBar.open('Failed to delete task', 'Dismiss', { duration: 3000 })
+        const ref = this.dialog.open(ConfirmDialogComponent, {
+            data: { title: 'Delete task', message: `Delete "${t.title}"?` }
+        });
+        ref.afterClosed().subscribe((confirmed) => {
+            if (!confirmed) return;
+            this.taskService.deleteTask(t.id).subscribe({
+                next: () => {
+                    this.snackBar.open('Task deleted', 'Dismiss', { duration: 2000 });
+                    this.router.navigate(['/tasks']);
+                },
+                error: () => this.snackBar.open('Failed to delete task', 'Dismiss', { duration: 3000 })
+            });
         });
     }
 

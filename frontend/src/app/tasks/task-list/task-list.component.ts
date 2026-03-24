@@ -25,6 +25,7 @@ import {
     TASK_STATUS_LABELS,
     TASK_PRIORITY_LABELS
 } from '../task.model';
+import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 
 @Component({
     selector: 'app-task-list',
@@ -135,13 +136,18 @@ export class TaskListComponent implements OnInit {
     }
 
     deleteTask(task: TaskItem): void {
-        if (!confirm(`Delete "${task.title}"?`)) return;
-        this.taskService.deleteTask(task.id).subscribe({
-            next: () => {
-                this.snackBar.open('Task deleted', 'Dismiss', { duration: 2000 });
-                this.loadTasks();
-            },
-            error: () => this.snackBar.open('Failed to delete task', 'Dismiss', { duration: 3000 })
+        const ref = this.dialog.open(ConfirmDialogComponent, {
+            data: { title: 'Delete task', message: `Delete "${task.title}"?` }
+        });
+        ref.afterClosed().subscribe((confirmed) => {
+            if (!confirmed) return;
+            this.taskService.deleteTask(task.id).subscribe({
+                next: () => {
+                    this.snackBar.open('Task deleted', 'Dismiss', { duration: 2000 });
+                    this.loadTasks();
+                },
+                error: () => this.snackBar.open('Failed to delete task', 'Dismiss', { duration: 3000 })
+            });
         });
     }
 
