@@ -8,6 +8,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-taskappdb}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
     networks:
       - taskapp-network
     healthcheck:
@@ -27,10 +28,9 @@ services:
       KC_DB_USERNAME: ${POSTGRES_USER:-taskapp}
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-taskapp_secret}
       KC_DB_SCHEMA: keycloak
-      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
-      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin_secret}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin_secret}
       KC_HOSTNAME_STRICT: false
-      KC_HOSTNAME_STRICT_HTTPS: false
       KC_HTTP_ENABLED: true
       KC_HEALTH_ENABLED: true
     volumes:
@@ -43,23 +43,24 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 && cat <&3 | grep -q '200 OK'"]
-      interval: 30s
-      timeout: 10s
+      test: ["CMD-SHELL", "{ printf 'HEAD /health/ready HTTP/1.0\\r\\n\\r\\n' >&0; grep 'HTTP/1.0 200'; } 0<>/dev/tcp/localhost/9000"]
+      interval: 15s
+      timeout: 5s
       retries: 10
-      start_period: 60s
+      start_period: 90s
 
   backend:
     build:
       context: ./backend
-      dockerfile: src/TaskApi/Dockerfile
+      dockerfile: Dockerfile
     container_name: taskapp-backend
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-taskappdb};Username=${POSTGRES_USER:-taskapp};Password=${POSTGRES_PASSWORD:-taskapp_secret}"
       Keycloak__Authority: "http://keycloak:8080/realms/taskapp"
       Keycloak__Audience: "taskapp-backend"
-      Cors__AllowedOrigins: "http://localhost:${FRONTEND_PORT:-4200},http://frontend"
+      Cors__AllowedOrigins__0: "http://localhost:${FRONTEND_PORT:-4200}"
+      Cors__AllowedOrigins__1: "http://frontend"
     networks:
       - taskapp-network
     depends_on:
@@ -68,7 +69,7 @@ services:
       keycloak:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      test: ["CMD", "bash", "-c", "{ printf 'GET /health HTTP/1.0\\r\\n\\r\\n' >&0; grep -q '200'; } 0<>/dev/tcp/localhost/8080"]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -92,6 +93,12 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
 volumes:
   postgres_data:
