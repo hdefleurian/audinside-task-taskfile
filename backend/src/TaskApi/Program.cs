@@ -20,6 +20,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
         options.TokenValidationParameters.ValidateIssuer = true;
         options.TokenValidationParameters.ValidateAudience = true;
+        var validIssuer = builder.Configuration["Keycloak:ValidIssuer"];
+        if (!string.IsNullOrEmpty(validIssuer))
+            options.TokenValidationParameters.ValidIssuer = validIssuer;
     });
 
 builder.Services.AddAuthorization();
@@ -45,8 +48,7 @@ builder.Services.AddHealthChecks()
 
 var app = builder.Build();
 
-// Auto-migrate in development
-if (app.Environment.IsDevelopment())
+// Apply pending EF Core migrations on startup (all environments).
 {
     await using var scope = app.Services.CreateAsyncScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
