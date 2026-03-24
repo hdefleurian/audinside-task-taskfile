@@ -25,7 +25,8 @@ tasks:
   tools:install:
     desc: "Install required .NET global tools (dotnet-ef)"
     cmds:
-      - dotnet tool install --global dotnet-ef
+      - dotnet tool update --global dotnet-ef || dotnet tool install --global dotnet-ef
+      - dotnet tool update --global dotnet-reportgenerator-globaltool || dotnet tool install --global dotnet-reportgenerator-globaltool
     silent: true
 
   build:

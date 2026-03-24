@@ -4,6 +4,14 @@ vars:
   FRONTEND_IMAGE_NAME: 'taskapp-frontend'
 
 tasks:
+  tools:install:
+    desc: "Initialize development tools (to be executed in Admin PowerShell)"
+    cmds:
+      - corepack use pnpm@10.32.1
+      - corepack enable pnpm
+      - pnpm setup
+    silent: true
+
   restore:
     desc: "Install frontend dependencies"
     cmds:
@@ -83,5 +91,7 @@ tasks:
   clean:
     desc: "Clean frontend build and test artifacts"
     cmds:
-      - powershell -NoProfile -Command "if (Test-Path dist) { Remove-Item -Recurse -Force dist }; if (Test-Path .angular) { Remove-Item -Recurse -Force .angular }; if (Test-Path coverage) { Remove-Item -Recurse -Force coverage }"
+      - rm dist
+      - rm .angular
+      - rm coverage
     silent: true

@@ -11,14 +11,6 @@ tasks:
     cmds:
       - task -a
 
-  init:
-    desc: "Initialize development tools (to be executed in Admin PowerShell)"
-    cmds:
-      - corepack use pnpm@latest
-      - corepack enable pnpm
-      - pnpm setup
-    silent: true
-
   build:
     desc: "Build all components"
     cmds:
@@ -199,9 +191,14 @@ tasks:
     silent: true
 
   compose:clean:
-    desc: "Remove all containers, volumes, and images created by docker compose"
+    desc: "Remove all containers, volumes, and images for this project using docker compose"
     cmds:
       - docker compose down --volumes --rmi all --remove-orphans
+    silent: true
+
+  compose:prune:
+    desc: "DANGER: Globally prune ALL unused Docker volumes and images on this machine"
+    cmds:
       - docker volume prune -f
       - docker image prune -f
     silent: true
