@@ -62,8 +62,15 @@ tasks:
     desc: "Run frontend end-to-end tests with Playwright"
     deps:
       - restore
+      - tests:e2e:init
     cmds:
       - pnpm exec playwright test
+    silent: true
+
+  tests:e2e:init:
+    desc: "Install Playwright"
+    cmds:
+      - pnpm exec playwright install
     silent: true
 
   tests:e2e:report:

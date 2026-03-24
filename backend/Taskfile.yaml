@@ -47,7 +47,7 @@ tasks:
 
   run:deps:
     desc: "Start backend dependencies (postgres and keycloak)"
-    dir: '{{.ROOT_DIR}}'
+    dir: '{{.TASKFILE_DIR}}/..'
     cmds:
       - docker compose up -d postgres keycloak
     silent: true
@@ -128,10 +128,10 @@ tasks:
 
   docker:build:
     desc: "Build Docker image for backend"
-    dir: '{{.ROOT_DIR}}'
+    dir: '{{.TASKFILE_DIR}}'
     cmds:
       - echo "Building Docker image for backend..."
-      - docker build -f backend/Dockerfile -t {{.BACKEND_IMAGE_NAME}}:latest .
+      - docker build -f Dockerfile -t {{.BACKEND_IMAGE_NAME}}:latest .
     silent: true
 
   docker:push:

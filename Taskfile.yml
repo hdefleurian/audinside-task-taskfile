@@ -11,6 +11,27 @@ tasks:
     cmds:
       - task -a
 
+  init:
+    desc: "Initialize project (install tools and dependencies)"
+    cmds:
+      - task init:backend
+      - task init:frontend
+    silent: true
+
+  init:backend:
+    desc: "Initialize backend tools"
+    dir: ./backend
+    cmds:
+      - task tools:install
+    silent: true
+    
+  init:frontend:
+    desc: "Initialize frontend tools"
+    dir: ./frontend
+    cmds:
+      - task tools:install
+    silent: true
+
   build:
     desc: "Build all components"
     cmds:
@@ -198,7 +219,15 @@ tasks:
 
   compose:prune:
     desc: "DANGER: Globally prune ALL unused Docker volumes and images on this machine"
+    requires:
+      vars:
+        - CONFIRM
     cmds:
+      - |
+        if [ "{{.CONFIRM}}" != "true" ]; then
+          echo "Refusing to run compose:prune without CONFIRM=true (this will prune ALL unused Docker volumes and images globally)."
+          exit 1
+        fi
       - docker volume prune -f
       - docker image prune -f
     silent: true
