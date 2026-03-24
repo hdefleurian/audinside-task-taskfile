@@ -1,0 +1,60 @@
+@if (loading()) {
+<div class="spinner-container">
+    <mat-spinner diameter="48"></mat-spinner>
+</div>
+} @else {
+@if (task(); as t) {
+<mat-card class="detail-container">
+    <mat-card-header>
+        <mat-card-title>{{ t.title }}</mat-card-title>
+        <span class="spacer"></span>
+        <div class="header-chips">
+            <mat-chip [color]="getStatusColor(t.status)" highlighted>
+                {{ statusLabels[t.status] }}
+            </mat-chip>
+            <mat-chip [color]="getPriorityColor(t.priority)" highlighted>
+                {{ priorityLabels[t.priority] }}
+            </mat-chip>
+        </div>
+    </mat-card-header>
+
+    <mat-card-content>
+        @if (t.description) {
+        <p class="description">{{ t.description }}</p>
+        <mat-divider></mat-divider>
+        }
+
+        <div class="meta-grid">
+            <div class="meta-item">
+                <span class="meta-label">Due Date</span>
+                <span class="meta-value">{{ t.dueDate ? (t.dueDate | date:'longDate') : '—' }}</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Assignee</span>
+                <span class="meta-value">{{ t.assignee ?? '—' }}</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Created</span>
+                <span class="meta-value">{{ t.createdAt | date:'medium' }}</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Last Updated</span>
+                <span class="meta-value">{{ t.updatedAt | date:'medium' }}</span>
+            </div>
+        </div>
+    </mat-card-content>
+
+    <mat-card-actions align="end">
+        <a mat-stroked-button routerLink="/tasks">
+            <mat-icon>arrow_back</mat-icon> Back
+        </a>
+        <a mat-raised-button color="accent" [routerLink]="['/tasks', t.id, 'edit']">
+            <mat-icon>edit</mat-icon> Edit
+        </a>
+        <button mat-raised-button color="warn" (click)="deleteTask()">
+            <mat-icon>delete</mat-icon> Delete
+        </button>
+    </mat-card-actions>
+</mat-card>
+}
+}

@@ -1,0 +1,92 @@
+<mat-card class="form-container">
+    <mat-card-header>
+        <mat-card-title>{{ isEdit() ? 'Edit Task' : 'New Task' }}</mat-card-title>
+    </mat-card-header>
+
+    <mat-card-content>
+        @if (loading()) {
+        <div class="spinner-container">
+            <mat-spinner diameter="48"></mat-spinner>
+        </div>
+        } @else {
+        <form [formGroup]="form" (ngSubmit)="onSubmit()">
+            <!-- Title -->
+            <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Title *</mat-label>
+                <input matInput formControlName="title" placeholder="Task title" />
+                @if (form.get('title')?.hasError('required') && form.get('title')?.touched) {
+                <mat-error>Title is required</mat-error>
+                }
+                @if (form.get('title')?.hasError('maxlength')) {
+                <mat-error>Title must be 200 characters or fewer</mat-error>
+                }
+            </mat-form-field>
+
+            <!-- Description -->
+            <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Description</mat-label>
+                <textarea matInput formControlName="description" rows="4" placeholder="Optional description"></textarea>
+                @if (form.get('description')?.hasError('maxlength')) {
+                <mat-error>Description must be 2000 characters or fewer</mat-error>
+                }
+            </mat-form-field>
+
+            <!-- Status + Priority row -->
+            <div class="row-fields">
+                <mat-form-field appearance="outline" class="half-width">
+                    <mat-label>Status</mat-label>
+                    <mat-select formControlName="status">
+                        @for (s of taskStatuses; track s) {
+                        <mat-option [value]="s">{{ statusLabels[s] }}</mat-option>
+                        }
+                    </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="half-width">
+                    <mat-label>Priority</mat-label>
+                    <mat-select formControlName="priority">
+                        @for (p of taskPriorities; track p) {
+                        <mat-option [value]="p">{{ priorityLabels[p] }}</mat-option>
+                        }
+                    </mat-select>
+                </mat-form-field>
+            </div>
+
+            <!-- Due Date + Assignee row -->
+            <div class="row-fields">
+                <mat-form-field appearance="outline" class="half-width">
+                    <mat-label>Due Date</mat-label>
+                    <input matInput [matDatepicker]="picker" formControlName="dueDate" />
+                    <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+                    <mat-datepicker #picker></mat-datepicker>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="half-width">
+                    <mat-label>Assignee</mat-label>
+                    <input matInput formControlName="assignee" placeholder="Name or username" />
+                    @if (form.get('assignee')?.hasError('maxlength')) {
+                    <mat-error>Assignee must be 200 characters or fewer</mat-error>
+                    }
+                </mat-form-field>
+            </div>
+
+            <!-- Actions -->
+            <div class="form-actions">
+                <button type="button" mat-stroked-button (click)="onCancel()" [disabled]="saving()">
+                    Cancel
+                </button>
+                <button type="submit" mat-raised-button color="primary" [disabled]="saving()">
+                    @if (saving()) {
+                    <mat-spinner diameter="20"></mat-spinner>
+                    } @else {
+                    <ng-container>
+                        <mat-icon>save</mat-icon>
+                        {{ isEdit() ? 'Save Changes' : 'Create Task' }}
+                    </ng-container>
+                    }
+                </button>
+            </div>
+        </form>
+        }
+    </mat-card-content>
+</mat-card>
