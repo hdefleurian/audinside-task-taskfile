@@ -1,0 +1,104 @@
+version: '3'
+
+vars:
+  FRONTEND_IMAGE_NAME: 'taskapp-frontend'
+
+tasks:
+  tools:install:
+    desc: "Initialize development tools (to be executed in Admin PowerShell)"
+    cmds:
+      - corepack use pnpm@10.32.1
+      - corepack enable pnpm
+      - pnpm setup
+    silent: true
+
+  restore:
+    desc: "Install frontend dependencies"
+    cmds:
+      - pnpm install
+    silent: true
+
+  build:
+    desc: "Build frontend production bundle"
+    deps:
+      - restore
+    cmds:
+      - pnpm run build:prod
+    silent: true
+
+  run:
+    desc: "Run the frontend development server"
+    deps:
+      - restore
+    cmds:
+      - pnpm start
+    silent: true
+
+  tests:
+    desc: "Run frontend unit tests"
+    deps:
+      - restore
+    cmds:
+      - pnpm test
+    silent: true
+
+  tests:watch:
+    desc: "Run frontend unit tests in watch mode"
+    deps:
+      - restore
+    cmds:
+      - pnpm run test:watch
+    silent: true
+
+  tests:coverage:
+    desc: "Run frontend unit tests with coverage"
+    deps:
+      - restore
+    cmds:
+      - pnpm run test:coverage
+    silent: true
+
+  tests:e2e:
+    desc: "Run frontend end-to-end tests with Playwright"
+    deps:
+      - restore
+      - tests:e2e:init
+    cmds:
+      - pnpm exec playwright test
+    silent: true
+
+  tests:e2e:init:
+    desc: "Install Playwright"
+    cmds:
+      - pnpm exec playwright install
+    silent: true
+
+  tests:e2e:report:
+    desc: "Open Playwright HTML report"
+    deps:
+      - restore
+    cmds:
+      - pnpm exec playwright show-report
+    silent: true
+
+  docker:build:
+    desc: "Build Docker image for frontend"
+    cmds:
+      - docker build -f Dockerfile -t {{.FRONTEND_IMAGE_NAME}}:latest .
+    silent: true
+
+  docker:push:
+    desc: "Push Docker image for frontend"
+    deps:
+      - docker:build
+    cmds:
+      - docker push {{.FRONTEND_IMAGE_NAME}}:latest
+    silent: true
+
+  clean:
+    desc: "Clean frontend build and test artifacts"
+    cmds:
+      - rm -f dist
+      - rm -f .angular
+      - rm -f coverage
+    silent: true

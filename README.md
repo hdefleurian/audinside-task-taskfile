@@ -37,7 +37,7 @@ cd audinside-task-taskfile
 cp .env.example .env
 
 # 3. Start the full stack
-docker compose up --build
+task compose:start
 
 # 4. Open the app
 #    Frontend  → http://localhost:4200
@@ -102,45 +102,40 @@ docker compose up --build
 
 ## Common Commands
 
-### Docker Compose
+### Workspace Tasks
 
 ```bash
-docker compose up --build          # Build and start all services
-docker compose up -d               # Start in background
-docker compose down                # Stop and remove containers
-docker compose down -v             # Stop and remove containers + volumes
-docker compose logs -f backend     # Stream backend logs
+task build                                      # Build backend + frontend
+task tests                                      # Run backend + frontend tests
+task compose:start                              # Start full Docker Compose stack
+task compose:infra                              # Start postgres + keycloak only
+task compose:logs:backend                       # Follow backend logs
+task compose:stop:all                           # Stop all services
+task run:backend                                # Run backend locally
+task run:frontend                               # Run frontend locally
+task db:migration:list                          # Show pending/applied migrations
+task db:migrate                                 # Apply migrations to local DB
+task db:migration:add NAME=AddSomeFeature       # Create a new migration
+task -d backend tests:unit                      # Run backend unit tests only
+task -d backend tests:integration               # Run backend integration tests only
+task -d frontend tests                          # Run frontend unit tests
+task -d frontend tests:coverage                 # Run frontend tests with coverage
+task -d frontend tests:e2e                      # Run Playwright E2E tests
 ```
 
-### Backend (.NET)
+### One-time Setup
 
 ```bash
-cd backend/src/TaskApi
-dotnet run                          # Run API locally (requires local PostgreSQL)
-dotnet test ../../tests/TaskApi.UnitTests
-dotnet test ../../tests/TaskApi.IntegrationTests  # Requires Docker for Testcontainers
+task init                                       # Enable pnpm via corepack (Admin PowerShell)
+task -d backend tools:install                   # Install dotnet-ef
 ```
 
-### EF Core Migrations
+### Migration ownership
 
-```bash
-cd backend/src/TaskApi
-dotnet ef migrations add <Name> --project . --startup-project .
-dotnet ef database update
-```
-
-### Frontend (Angular)
-
-```bash
-cd frontend
-npm install
-npm start              # Dev server on http://localhost:4200
-npm test               # Jest unit tests
-npm run test:coverage  # Jest with coverage
-npm run build:prod     # Production build
-npx playwright install # Install E2E browsers (first time only)
-npx playwright test    # Run E2E tests
-```
+- `task compose:start` in local development: the backend container applies pending migrations on startup
+- `task db:migrate`: explicit local migration path when running the backend outside Docker
+- integration tests: the test host applies migrations against the fresh PostgreSQL test container before requests are executed
+- production: run migrations as an explicit deployment step rather than on app startup
 
 ---
 

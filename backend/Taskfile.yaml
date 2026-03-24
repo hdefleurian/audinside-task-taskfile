@@ -1,0 +1,151 @@
+version: '3'
+
+vars:
+  BUILD_CONFIGURATION: 'Debug'
+  SOLUTION_FILE: 'TaskApp.slnx'
+  BACKEND_IMAGE_NAME: 'taskapp-backend'
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: '1'
+
+tasks:
+  default:
+    desc: "Build and run the backend application"
+    deps:
+      - run
+
+  restore:
+    desc: "Restore backend dependencies"
+    cmds:
+      - echo "Restoring backend..."
+      - dotnet restore {{.SOLUTION_FILE}}
+    silent: true
+
+  tools:install:
+    desc: "Install required .NET global tools (dotnet-ef)"
+    cmds:
+      - dotnet tool update --global dotnet-ef || dotnet tool install --global dotnet-ef
+      - dotnet tool update --global dotnet-reportgenerator-globaltool || dotnet tool install --global dotnet-reportgenerator-globaltool
+    silent: true
+
+  build:
+    desc: "Build the backend project"
+    deps:
+      - restore
+    cmds:
+      - echo "Building backend..."
+      - dotnet build {{.SOLUTION_FILE}} --no-restore --configuration {{.BUILD_CONFIGURATION}}
+    silent: true
+
+  rebuild:
+    desc: "Rebuild the backend project"
+    cmds:
+      - task clean
+      - task build
+    silent: true
+
+  run:deps:
+    desc: "Start backend dependencies (postgres and keycloak)"
+    dir: '{{.TASKFILE_DIR}}/..'
+    cmds:
+      - docker compose up -d postgres keycloak
+    silent: true
+
+  run:
+    desc: "Run the backend application"
+    deps:
+      - build
+      - run:deps
+    env:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=taskappdb;Username=taskapp;Password=taskapp_secret"
+      Keycloak__Authority: "http://localhost:8080/realms/taskapp"
+      Keycloak__Audience: "taskapp-backend"
+      Cors__AllowedOrigins__0: "http://localhost:4200"
+    cmds:
+      - echo "Running backend..."
+      - dotnet run --project src/TaskApi/TaskApi.csproj --no-build --configuration {{.BUILD_CONFIGURATION}}
+    silent: true
+
+  tests:
+    desc: "Run all backend tests (unit + integration)"
+    deps:
+      - build
+    cmds:
+      - echo "Running all tests..."
+      - dotnet test {{.SOLUTION_FILE}} --no-build --configuration {{.BUILD_CONFIGURATION}}
+    silent: true
+
+  tests:unit:
+    desc: "Run unit tests only (fast, no external dependencies)"
+    deps:
+      - build
+    cmds:
+      - echo "Running unit tests..."
+      - dotnet test {{.SOLUTION_FILE}} --no-build --configuration {{.BUILD_CONFIGURATION}} --filter "FullyQualifiedName!~IntegrationTests"
+    silent: true
+
+  tests:integration:
+    desc: "Run integration tests only (requires Docker for Testcontainers)"
+    deps:
+      - build
+    cmds:
+      - echo "Running integration tests (Docker required)..."
+      - dotnet test {{.SOLUTION_FILE}} --no-build --configuration {{.BUILD_CONFIGURATION}} --filter "FullyQualifiedName~IntegrationTests"
+    silent: true
+
+  tests:coverage:
+    desc: "Run backend tests with coverage report"
+    deps:
+      - build
+    cmds:
+      - echo "Running tests with coverage..."
+      - dotnet test {{.SOLUTION_FILE}} --no-build --configuration {{.BUILD_CONFIGURATION}} --collect:"XPlat Code Coverage"
+      - reportgenerator -reports:**/coverage.cobertura.xml -targetdir:CoverageReport -reporttypes:Html
+    silent: true
+
+  db:migrate:
+    desc: "Apply EF Core migrations"
+    cmds:
+      - dotnet ef database update --project src/TaskApi/TaskApi.csproj --startup-project src/TaskApi/TaskApi.csproj
+    silent: true
+
+  db:migration:add:
+    desc: "Add EF Core migration (usage: task db:migration:add NAME=MyMigration)"
+    requires:
+      vars:
+        - NAME
+    cmds:
+      - dotnet ef migrations add {{.NAME}} --project src/TaskApi/TaskApi.csproj --startup-project src/TaskApi/TaskApi.csproj
+    silent: true
+
+  db:migration:list:
+    desc: "List EF Core migrations"
+    cmds:
+      - dotnet ef migrations list --project src/TaskApi/TaskApi.csproj --startup-project src/TaskApi/TaskApi.csproj
+    silent: true
+
+  docker:build:
+    desc: "Build Docker image for backend"
+    dir: '{{.TASKFILE_DIR}}'
+    cmds:
+      - echo "Building Docker image for backend..."
+      - docker build -f Dockerfile -t {{.BACKEND_IMAGE_NAME}}:latest .
+    silent: true
+
+  docker:push:
+    desc: "Push Docker image for backend"
+    deps:
+      - docker:build
+    cmds:
+      - echo "Pushing Docker image for backend..."
+      - docker push {{.BACKEND_IMAGE_NAME}}:latest
+    silent: true
+
+  clean:
+    desc: "Clean backend build artifacts"
+    cmds:
+      - echo "Cleaning backend..."
+      - dotnet clean {{.SOLUTION_FILE}} --configuration {{.BUILD_CONFIGURATION}}
+    silent: true

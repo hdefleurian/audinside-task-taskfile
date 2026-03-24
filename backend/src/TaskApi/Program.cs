@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using Scalar.AspNetCore;
 using TaskApi.Data;
 using TaskApi.Endpoints;
@@ -48,7 +49,10 @@ builder.Services.AddHealthChecks()
 
 var app = builder.Build();
 
-// Apply pending EF Core migrations on startup (all environments).
+// In local development, apply pending migrations before serving requests.
+// Testing uses an explicit migration step in TaskApiFactory to control ordering,
+// and production should run migrations as a separate deployment step.
+if (app.Environment.IsDevelopment())
 {
     await using var scope = app.Services.CreateAsyncScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
