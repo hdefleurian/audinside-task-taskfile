@@ -9,7 +9,7 @@ const KEYCLOAK_URL = 'http://localhost:8080';
 const TEST_USER = { username: 'testuser', password: 'Test1234!' };
 
 async function login(page: Page): Promise<void> {
-    await page.goto(APP_URL);
+    await page.goto(APP_URL, { waitUntil: 'commit' });
 
     // Wait for Keycloak redirect
     await page.waitForURL(/localhost:8080/, { timeout: 10_000 });
@@ -25,7 +25,7 @@ async function login(page: Page): Promise<void> {
 
 test.describe('Authentication', () => {
     test('redirects to Keycloak login when unauthenticated', async ({ page }) => {
-        await page.goto(`${APP_URL}/tasks`);
+        await page.goto(`${APP_URL}/tasks`, { waitUntil: 'commit' });
         await page.waitForURL(/localhost:8080/, { timeout: 10_000 });
         await expect(page.locator('#username')).toBeVisible();
     });
@@ -43,7 +43,7 @@ test.describe('Task Management', () => {
     });
 
     test('task list page loads', async ({ page }) => {
-        await expect(page.locator('h2, h1')).toContainText(/tasks/i);
+        await expect(page.locator('mat-card-title')).toContainText(/tasks/i);
     });
 
     test('can create a new task', async ({ page }) => {
@@ -54,10 +54,10 @@ test.describe('Task Management', () => {
         await page.locator('[formControlName="title"]').fill(title);
         await page.locator('[formControlName="description"]').fill('Created by Playwright');
 
-        await page.getByRole('button', { name: /save/i }).click();
+        await page.locator('button[type="submit"]').click();
 
-        // Should navigate back to list or detail
-        await page.waitForURL(/\/tasks(\/[^/]+)?$/, { timeout: 10_000 });
+        // Wait for navigation to the task detail page (UUID in URL)
+        await page.waitForURL(/\/tasks\/[0-9a-f-]{36}$/, { timeout: 10_000 });
         await expect(page.getByText(title)).toBeVisible();
     });
 
@@ -66,8 +66,8 @@ test.describe('Task Management', () => {
         const title = `Detail Task ${Date.now()}`;
         await page.getByRole('link', { name: /new task/i }).click();
         await page.locator('[formControlName="title"]').fill(title);
-        await page.getByRole('button', { name: /save/i }).click();
-        await page.waitForURL(/\/tasks(\/[^/]+)?$/, { timeout: 10_000 });
+        await page.locator('button[type="submit"]').click();
+        await page.waitForURL(/\/tasks\/[0-9a-f-]{36}$/, { timeout: 10_000 });
 
         // Navigate to the detail from the list
         await page.goto(`${APP_URL}/tasks`);
@@ -82,16 +82,16 @@ test.describe('Task Management', () => {
         const originalTitle = `Edit Task ${Date.now()}`;
         await page.getByRole('link', { name: /new task/i }).click();
         await page.locator('[formControlName="title"]').fill(originalTitle);
-        await page.getByRole('button', { name: /save/i }).click();
-        await page.waitForURL(/\/tasks(\/[^/]+)?$/, { timeout: 10_000 });
+        await page.locator('button[type="submit"]').click();
+        await page.waitForURL(/\/tasks\/[0-9a-f-]{36}$/, { timeout: 10_000 });
 
         // Find and open the task
         await page.goto(`${APP_URL}/tasks`);
         await page.getByText(originalTitle).click();
         await page.waitForURL(/\/tasks\/[^/]+$/);
 
-        // Click edit
-        await page.getByRole('button', { name: /edit/i }).click();
+        // Click edit (rendered as <a mat-raised-button>, so role=link)
+        await page.getByRole('link', { name: /edit/i }).click();
         await page.waitForURL(/\/tasks\/[^/]+\/edit$/);
 
         // Change the title
@@ -99,7 +99,7 @@ test.describe('Task Management', () => {
         const titleInput = page.locator('[formControlName="title"]');
         await titleInput.clear();
         await titleInput.fill(updatedTitle);
-        await page.getByRole('button', { name: /save/i }).click();
+        await page.locator('button[type="submit"]').click();
 
         await page.waitForURL(/\/tasks(\/[^/]+)?$/, { timeout: 10_000 });
         await expect(page.getByText(updatedTitle)).toBeVisible();
@@ -110,8 +110,8 @@ test.describe('Task Management', () => {
         const title = `Delete Task ${Date.now()}`;
         await page.getByRole('link', { name: /new task/i }).click();
         await page.locator('[formControlName="title"]').fill(title);
-        await page.getByRole('button', { name: /save/i }).click();
-        await page.waitForURL(/\/tasks(\/[^/]+)?$/, { timeout: 10_000 });
+        await page.locator('button[type="submit"]').click();
+        await page.waitForURL(/\/tasks\/[0-9a-f-]{36}$/, { timeout: 10_000 });
 
         // Open the task
         await page.goto(`${APP_URL}/tasks`);

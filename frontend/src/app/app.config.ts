@@ -27,7 +27,6 @@ export const appConfig: ApplicationConfig = {
                 renewTimeBeforeTokenExpiresInSeconds: 30,
                 secureRoutes: ['/api/']
             }
-        }),
-        withAppInitializerAuthCheck()
+        }, withAppInitializerAuthCheck())
     ]
 };

@@ -41,8 +41,8 @@ export class TaskDetailComponent implements OnInit {
     private readonly router = inject(Router);
     private readonly snackBar = inject(MatSnackBar);
 
-    readonly statusLabels = TASK_STATUS_LABELS;
-    readonly priorityLabels = TASK_PRIORITY_LABELS;
+    readonly statusLabels: Record<string, string> = TASK_STATUS_LABELS;
+    readonly priorityLabels: Record<string, string> = TASK_PRIORITY_LABELS;
 
     task = signal<TaskItem | null>(null);
     loading = signal(true);

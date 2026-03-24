@@ -58,8 +58,8 @@ export class TaskListComponent implements OnInit {
     readonly displayedColumns = ['title', 'status', 'priority', 'dueDate', 'assignee', 'actions'];
     readonly taskStatuses = Object.values(TaskStatus);
     readonly taskPriorities = Object.values(TaskPriority);
-    readonly statusLabels = TASK_STATUS_LABELS;
-    readonly priorityLabels = TASK_PRIORITY_LABELS;
+    readonly statusLabels: Record<string, string> = TASK_STATUS_LABELS;
+    readonly priorityLabels: Record<string, string> = TASK_PRIORITY_LABELS;
 
     tasks = signal<TaskItem[]>([]);
     totalCount = signal(0);

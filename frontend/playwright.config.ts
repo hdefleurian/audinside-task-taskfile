@@ -9,8 +9,9 @@ export default defineConfig({
     reporter: [['html', { outputFolder: 'playwright-report' }], ['list']],
     use: {
         baseURL: 'http://localhost:4200',
-        trace: 'on-first-retry',
+        trace: 'on',
         screenshot: 'only-on-failure',
+        navigationTimeout: 60_000,
     },
     projects: [
         {
