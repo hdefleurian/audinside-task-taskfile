@@ -133,7 +133,7 @@ tasks:
   compose:start:
     desc: "Start all services with docker compose"
     cmds:
-      - docker compose up -d
+      - docker compose up --build -d
     silent: true
 
   compose:infra:

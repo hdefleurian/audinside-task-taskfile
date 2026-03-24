@@ -98,7 +98,7 @@ tasks:
   clean:
     desc: "Clean frontend build and test artifacts"
     cmds:
-      - rm dist
-      - rm .angular
-      - rm coverage
+      - rm -f dist
+      - rm -f .angular
+      - rm -f coverage
     silent: true
