@@ -2,9 +2,204 @@
 
 version: "3"
 
+dotenv:
+  - .env
+
 tasks:
   default:
-    desc: List all tasks
+    desc: "Display available tasks"
     cmds:
       - task -a
+
+  init:
+    desc: "Initialize development tools (to be executed in Admin PowerShell)"
+    cmds:
+      - corepack use pnpm@latest
+      - corepack enable pnpm
+      - pnpm setup
+    silent: true
+
+  build:
+    desc: "Build all components"
+    cmds:
+      - task build:backend
+      - task build:frontend
+      - task build:jobs
+    silent: true
+
+  build:backend:
+    desc: "Build backend"
+    dir: ./backend
+    cmds:
+      - task build
+    silent: true
+
+  build:frontend:
+    desc: "Build frontend"
+    dir: ./frontend
+    cmds:
+      - task build
+    silent: true
+
+  run:backend:
+    desc: "Run backend"
+    dir: ./backend
+    cmds:
+      - task run
+    silent: true
+
+  run:frontend:
+    desc: "Run frontend"
+    dir: ./frontend
+    deps:
+      - run:backend:deps
+    cmds:
+      - task run
+    silent: true
+
+  tests:
+    desc: "Run tests for all components"
+    cmds:
+      - task tests:backend
+      - task tests:frontend
+      - task tests:jobs
+    silent: true
+
+  tests:backend:
+    desc: "Run backend tests"
+    dir: ./backend
+    cmds:
+      - task tests
+    silent: true
+
+  tests:frontend:
+    desc: "Run frontend tests"
+    dir: ./frontend
+    cmds:
+      - task tests
+    silent: true
+
+  clean:
+    desc: "Clean all artifacts"
+    cmds:
+      - task clean:backend
+      - task clean:frontend
+    silent: true
+
+  clean:backend:
+    desc: "Clean backend build artifacts"
+    dir: ./backend
+    cmds:
+      - task clean
+    silent: true
+
+  clean:frontend:
+    desc: "Clean frontend build artifacts"
+    dir: ./frontend
+    cmds:
+      - task clean
+    silent: true
+
+  docker:build:
+    desc: "Build all Docker images"
+    cmds:
+      - task docker:build:backend
+      - task docker:build:frontend
+    silent: true
+
+  docker:build:backend:
+    desc: "Build backend Docker image"
+    dir: ./backend
+    cmds:
+      - task docker:build
+    silent: true
+
+  docker:build:frontend:
+    desc: "Build frontend Docker image"
+    dir: ./frontend
+    cmds:
+      - task docker:build
+    silent: true
+
+  compose:start:
+    desc: "Start all services with docker-compose"
+    cmds:
+      - docker-compose up -d
+    silent: true
+
+  compose:start:*:
+    vars:
+      SERVICE: '{{index .MATCH 0}}'
+    desc: "Start {{.SERVICE}} service and dependencies with docker-compose"
+    cmds:
+      - docker-compose up -d {{.SERVICE}}
+    silent: true
+
+  compose:ps:
+    desc: "List running services with docker-compose"
+    cmds:
+      - docker-compose ps
+    silent: true
+
+  compose:stop:all:
+    desc: "Stop all services with docker-compose"
+    cmds:
+      - docker-compose down
+    silent: true
+
+  compose:stop:*:
+    vars:
+      SERVICE: '{{index .MATCH 0}}'
+    desc: "Stop {{.SERVICE}} service with docker-compose"
+    cmds:
+      - docker-compose down {{.SERVICE}}
+    silent: true
+
+  compose:build:backend:
+    desc: "Build backend service with docker-compose"
+    cmds:
+      - docker-compose build backend
+    silent: true
+
+  compose:restart:backend:
+    desc: "Restart backend service with docker-compose"
+    cmds:
+      - task compose:stop:backend
+      - task compose:build:backend
+      - task compose:start:backend
+    silent: true
+
+  compose:build:frontend:
+    desc: "Build frontend service with docker-compose"
+    cmds:
+      - docker-compose build frontend
+    silent: true
+
+  compose:restart:frontend:
+    desc: "Restart frontend service with docker-compose"
+    cmds:
+      - task compose:stop:frontend
+      - task compose:build:frontend
+      - task compose:start:frontend
+    silent: true
+
+  compose:logs:
+    desc: "Follow logs of all services with docker-compose"
+    cmds:
+      - docker-compose logs -f
+
+  compose:logs:*:
+    vars:
+      SERVICE: '{{index .MATCH 0}}'
+    desc: "Follow logs of {{.SERVICE}} service with docker-compose"
+    cmds:
+      - docker-compose logs -f {{.SERVICE}}
+    silent: true
+
+  compose:clean:
+    desc: "Remove all containers, volumes, and images created by docker-compose"
+    cmds:
+      - docker-compose down --volumes --rmi all --remove-orphans
+      - docker volume prune -f
+      - docker image prune -f
     silent: true
