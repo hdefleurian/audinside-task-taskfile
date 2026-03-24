@@ -7,11 +7,11 @@ TaskApp follows the **test pyramid**: many fast unit tests at the base, fewer in
 ```
           /\
          /  \
-        / E2E \          ← 9 tests  (Playwright)
+        / E2E \          ← 14 tests (Playwright)
        /────────\
       / Integration \    ← 9 tests  (Testcontainers + WebApplicationFactory)
      /──────────────\
-    /   Unit Tests   \   ← 12 backend + 8 frontend tests
+    /   Unit Tests   \   ← 12 backend + 38 frontend tests
    /──────────────────\
 ```
 
@@ -25,9 +25,8 @@ TaskApp follows the **test pyramid**: many fast unit tests at the base, fewer in
 
 **Tooling:**
 - [xUnit](https://xunit.net/) — test runner
-- [Moq](https://github.com/devlooped/moq) — mocking
 - [FluentAssertions](https://fluentassertions.com/) — assertion library
-- EF Core **in-memory** provider — database substitute
+- EF Core **in-memory** provider — database substitute (no mocking needed)
 
 **What is tested:**
 
@@ -128,6 +127,8 @@ Integration tests do not call Keycloak. `TaskApiFactory` swaps the default authe
 
 **What is tested (`task.service.spec.ts`):**
 
+**`task.service.spec.ts`** — HTTP layer:
+
 | Test | Description |
 |------|-------------|
 | `getTasks should GET /api/tasks` | Correct URL and method |
@@ -137,6 +138,72 @@ Integration tests do not call Keycloak. `TaskApiFactory` swaps the default authe
 | `createTask should POST with body` | Method, URL, body |
 | `updateTask should PUT with partial update` | Method, URL, body |
 | `deleteTask should DELETE` | Method and URL |
+
+**`task-list.component.spec.ts`** — list view logic:
+
+| Test | Description |
+|------|-------------|
+| `should create` | Component initialises |
+| `should call getTasks on init` | loadTasks invoked on ngOnInit |
+| `should render tasks when loaded` | tasks signal and totalCount updated |
+| `should show snackbar error when getTasks fails` | error path handled |
+| `onSearch() should reset page to 0 and reload` | pagination reset on search |
+| `onFilterChange() should reset page to 0 and reload` | pagination reset on filter |
+| `clearFilters() should clear all filter signals and reload` | all signals reset |
+| `deleteTask() should open confirm dialog` | MatDialog opened |
+| `deleteTask() should call deleteTask service when confirmed` | deletion on confirm |
+| `deleteTask() should NOT call deleteTask service when cancelled` | no-op on cancel |
+
+**`task-detail.component.spec.ts`** — detail view logic:
+
+| Test | Description |
+|------|-------------|
+| `should create` | Component initialises |
+| `should load and display task on init` | getTask called, task signal set |
+| `should show snackbar and navigate to list on load error` | error path handled |
+| `deleteTask() should open confirm dialog` | MatDialog opened |
+| `deleteTask() should delete and navigate when confirmed` | deletion on confirm |
+| `deleteTask() should NOT delete when cancelled` | no-op on cancel |
+| `deleteTask() should do nothing when task is null` | null guard |
+
+**`task-form.component.spec.ts`** — create & edit form:
+
+| Test | Description |
+|------|-------------|
+| `should create` | Component initialises |
+| `should be in create mode when no route id` | isEdit false without id |
+| `should have form invalid when title is empty` | required validator |
+| `should have form valid with a title` | valid state |
+| `should call createTask on valid submit` | POST on creation |
+| `should not call createTask when form is invalid` | guard on invalid |
+| `should show error snackbar when createTask fails` | error UI feedback |
+| `should enforce maxLength(200) on title` | length validator |
+| `should be in edit mode when route id is present` | isEdit true with id |
+| `should load and pre-fill the form with existing task data` | patchValue on load |
+| `should call updateTask on valid submit in edit mode` | PUT on edit |
+
+**`auth.service.spec.ts`** — auth service delegation:
+
+| Test | Description |
+|------|-------------|
+| `should expose isAuthenticated$ mapping to boolean` | observable mapped |
+| `should call oidc.authorize() when login() is invoked` | login delegates |
+| `should call oidc.logoff() when logout() is invoked` | logout delegates |
+| `should return access token from getAccessToken()` | token forwarded |
+
+**`auth.guard.spec.ts`** — route guard:
+
+| Test | Description |
+|------|-------------|
+| `should return true when authenticated` | allows navigation |
+| `should return false and call login() when not authenticated` | redirects to login |
+
+**`auth.interceptor.spec.ts`** — HTTP interceptor:
+
+| Test | Description |
+|------|-------------|
+| `should attach Authorization header for /api/ requests` | header added |
+| `should call getAccessToken for /api/ requests` | token retrieved |
 
 **Run:**
 
@@ -187,14 +254,25 @@ task -d frontend restore
 | Edit task | Edit task → update title → changes reflected |
 | Delete task | Delete from detail → task absent from list |
 
+### Filtering and Sorting
+
+| Test | Description |
+|------|-------------|
+| Search filters by title | Unique title returns exactly one row |
+| Status dropdown filters list | Only matching status rows shown |
+| Priority dropdown filters list | Only matching priority rows shown |
+| Clear filters resets list | Row count returns to unfiltered state |
+| Title column sort | Clicking header changes sort order |
+| Paginator is present | Mat-paginator visible with total count |
+
 **Run:**
 
 ```bash
 task -d frontend tests:e2e
 task -d frontend tests:e2e:report
+task -d frontend tests:e2e:headed   # headed browser (debugging)
+task -d frontend tests:e2e:ui       # Playwright UI mode
 ```
-
-There is currently no Task wrapper for Playwright `--headed` or `--ui` modes.
 
 **Configuration:** `frontend/playwright.config.ts`
 

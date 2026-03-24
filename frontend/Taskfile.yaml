@@ -67,6 +67,24 @@ tasks:
       - pnpm exec playwright test
     silent: true
 
+  tests:e2e:headed:
+    desc: "Run frontend end-to-end tests with Playwright in headed (visible) browser"
+    deps:
+      - restore
+      - tests:e2e:init
+    cmds:
+      - pnpm exec playwright test --headed
+    silent: true
+
+  tests:e2e:ui:
+    desc: "Open Playwright UI mode for interactive test debugging"
+    deps:
+      - restore
+      - tests:e2e:init
+    cmds:
+      - pnpm exec playwright test --ui
+    silent: true
+
   tests:e2e:init:
     desc: "Install Playwright"
     cmds:

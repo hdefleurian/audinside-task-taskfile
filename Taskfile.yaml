@@ -88,6 +88,27 @@ tasks:
       - task tests
     silent: true
 
+  tests:e2e:
+    desc: "Run frontend E2E tests with Playwright"
+    dir: ./frontend
+    cmds:
+      - task tests:e2e
+    silent: true
+
+  tests:e2e:headed:
+    desc: "Run frontend E2E tests in headed browser"
+    dir: ./frontend
+    cmds:
+      - task tests:e2e:headed
+    silent: true
+
+  tests:e2e:ui:
+    desc: "Open Playwright UI mode for interactive E2E debugging"
+    dir: ./frontend
+    cmds:
+      - task tests:e2e:ui
+    silent: true
+
   clean:
     desc: "Clean all artifacts"
     cmds:

@@ -42,8 +42,8 @@ export interface TaskQueryParams {
 export interface CreateTaskRequest {
     title: string;
     description?: string | null;
-    status?: string;
-    priority?: string;
+    status?: TaskStatus;
+    priority?: TaskPriority;
     dueDate?: string | null;
     assignee?: string | null;
 }
@@ -51,8 +51,8 @@ export interface CreateTaskRequest {
 export interface UpdateTaskRequest {
     title?: string;
     description?: string | null;
-    status?: string;
-    priority?: string;
+    status?: TaskStatus;
+    priority?: TaskPriority;
     dueDate?: string | null;
     assignee?: string | null;
 }
