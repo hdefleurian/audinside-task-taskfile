@@ -1,6 +1,7 @@
-# TaskApp
+# Audinsine Task #1 2026 - Demo Taskfile
 
-A production-ready task management application built with Angular 19, .NET 10, PostgreSQL, and Keycloak. Fully containerised with Docker Compose.
+This repository contains a task management application built with Angular 19, .NET 10, PostgreSQL, and Keycloak. The application is also fully containerised with Docker Compose.
+It illustrates usages of [Task](https://taskfile.dev) tool.
 
 ---
 
